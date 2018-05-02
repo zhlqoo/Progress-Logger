@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 from datetime import date
 from math import ceil
+import json, requests
 
 class Schedule:
 
@@ -84,7 +85,7 @@ class Schedule:
     return -1
    adds = [int(add) for add in adds.split()]
   except ValueError:
-   print("Sorry, I didn't understand that.")
+   print("Sorry, I didn't understand that.\n")
    return Schedule.__set_problems()
   return adds
 
@@ -92,31 +93,31 @@ class Schedule:
  def __set_date():
   try:
    day = input("Input date (Enter for today | 'q' for Quit): e.g. 2018-04-03 or 20180403: \n")
-   if day == "q":     
+   if day == "q":
     return -1
    if day == "":
     day = pd.to_datetime(date.today())
    else:
     day = pd.to_datetime(day, infer_datetime_format = True)
   except ValueError:
-   print("Sorry, I didn't understand that.")
+   print("Sorry, I didn't understand that.\n")
    return Schedule.__set_date()
   return day
 
 
  def __get_problems(self):
   try:
-   day = input("Input date to show problems (Enter for today | 'q' for Quit): e.g. 2018-04-03 or 20180403: \n")   
+   day = input("Input date to show problems (Enter for today | 'q' for Quit): e.g. 2018-04-03 or 20180403: \n")
    if day == 'q':
     return -1
    if day == '':
     day = date.today()
    day = str(pd.to_datetime(day, format='%Y-%m-%d').date())
    print('TO DO: {} ({})'.format(' '.join(map(str, self.data.loc[day, 'Todo'])), len(self.data.loc[day, 'Todo'])))
-   print('NEW: {} ({})'.format(' '.join(map(str, self.data.loc[day, 'Problems'])), len(self.data.loc[day, 'Problems']))) 
+   print('NEW: {} ({})'.format(' '.join(map(str, self.data.loc[day, 'Problems'])), len(self.data.loc[day, 'Problems'])))
    print('')
   except (KeyError, ValueError) as error:
-   print("Sorry, I didn't understand that.")
+   print("Sorry, I didn't understand that.\n")
    return self.__get_problems()
 
 
@@ -127,22 +128,49 @@ class Schedule:
   for num in nums:
    ans += Schedule.__flatten(num)
   return ans
- 
-     
+
+ def __get_title():
+  try:
+   problem_id = input("Input problem id to show title (Enter or 's' for Skip | 'q' for Quit): e.g. 12: \n")
+   if problem_id == 'q':
+    return -1
+   elif problem_id == 's' or problem_id == '':
+    print("Quit querying problem id...\n")
+    return -2
+   else:
+    problem_id = int(problem_id)
+    req = requests.get(url='https://leetcode.com/api/problems/algorithms/')
+    data_json = json.loads(req.text)
+    alg_list = data_json['stat_status_pairs']
+    for alg_json in alg_list:
+     if alg_json['stat']['question_id'] == problem_id:
+      print('\"' + alg_json['stat']['question__title'] + '\"\n')
+      return Schedule.__get_title()
+    raise KeyError      
+  except ValueError:
+   print("Sorry, I didn't understand that.\n")
+   return Schedule.__get_title()
+  except KeyError:
+   print("Oops... Such problem id not found.\n")
+   return Schedule.__get_title()
+
  def work_flow(self):
-  quit_flag = False     
-  self.data = Schedule.__pre_process(self.data)   
+  quit_flag = False
+  self.data = Schedule.__pre_process(self.data)
   get_flag = self.__get_problems() if Path(self.path).is_file() else 0
-  quit_flag = (get_flag == -1)   
+  quit_flag = (get_flag == -1)
   while not quit_flag:
+   if Schedule.__get_title() == -1:
+    quit_flag = True
+    break
    problems = Schedule.__set_problems()
    if problems == -1:
     quit_flag = True
     break
    day = Schedule.__set_date()
    if day == -1:
-    quit_flag = True       
-    break   
+    quit_flag = True
+    break
    input_key = input("Enter 'q' or 'Enter' to complete. If you made some mistakes, press any other key to re-enter \n")
    if input_key == "q" or input_key == "":
     break

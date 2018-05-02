@@ -1,2 +1,7 @@
 *.csv
 *.bak
+*.spec
+__pycache__/
+build/
+dist/
+venv_py36
